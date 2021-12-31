@@ -1,0 +1,170 @@
+---
+
+version: '3.8'
+
+
+services:
+   elasticsearch:
+     image: docker.elastic.co/elasticsearch/elasticsearch:7.16.2
+     user: "0:0"
+     privileged: true
+     container_name: elasticsearch
+     volumes:
+          - ./config/elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/elasticsearch.yml
+          - ./elasticsearch_data:/usr/share/elasticsearch/data:rw
+     ports:
+          - "9200:9200"
+          - "9300:9300"
+     environment:
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+          ELASTIC_PASSWORD: qwerty123
+          discovery.type: single-node
+     networks:
+          elkf:
+             ipv4_address: 172.20.0.2
+
+
+   logstash:
+     image: docker.elastic.co/logstash/logstash:7.16.2
+     user: "0:0"
+     container_name: logstash
+     volumes:
+          - ./config/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
+          - ./config/logstash/pipeline/:/usr/share/logstash/pipeline/
+          - ./config/logstash/pipeline/patterns/:/etc/logstash/patterns
+          - ./logs/:/usr/share/logstash_out/:rw
+     ports:
+          - "5044:5044"
+          - "5000:5000/tcp"
+          - "5000:5000/udp"
+          - "9600:9600"
+     environment:
+          LS_JAVA_OPTS: "-Xmx750m -Xms750m"
+     networks:
+          elkf:
+             ipv4_address: 172.20.0.3
+     depends_on:
+          - elasticsearch
+
+   kibana:
+     image: docker.elastic.co/kibana/kibana:7.16.2
+     container_name: kibana
+     volumes:
+          - ./config/kibana/kibana.yml:/usr/share/kibana/config/kibana.yml
+     ports:
+          - "5601:5601"
+     networks:
+          elkf:
+             ipv4_address: 172.20.0.4
+
+     depends_on:
+          - elasticsearch
+
+   filebeat-to-file-7.7.0:
+     image: docker.elastic.co/beats/filebeat:7.7.0
+     container_name: filebeat-to-file
+     user: root
+     networks:
+          elkf:
+             ipv4_address: 172.20.0.5
+
+     depends_on:
+          - elasticsearch
+
+     profiles: ["fb_7.7.0"]
+
+     volumes:
+          - "./config/filebeat/filebeat-to-file.yml:/usr/share/filebeat/filebeat.yml:ro"
+          - /var/log/:/var/log/
+          - ./logs:/root/logs
+          - "/var/lib/docker/containers/:/var/lib/docker/containers:ro"
+          - "/var/run/docker.sock:/var/run/docker.sock:ro"
+     environment:
+          - ELASTICSEARCH_HOST=172.20.0.2
+          - KIBANA_HOST=172.20.0.4
+          - ELASTICSEARCH_USERNAME=elastic
+          - ELASTICSEARCH_PASSWORD=qwerty123
+
+
+   filebeat-to-logstash-7.7.0:
+     image: docker.elastic.co/beats/filebeat:7.7.0
+     container_name: filebeat-to-logstash
+     user: root
+     networks:
+          elkf:
+             ipv4_address: 172.20.0.6
+
+     profiles: ["fb_7.7.0"]
+
+     depends_on:
+          - elasticsearch
+     volumes:
+          - "./config/filebeat/filebeat-to-logstash.yml:/usr/share/filebeat/filebeat.yml:ro"
+          - /var/log/:/var/log/
+          - ./logs:/root/logs
+          - "/var/lib/docker/containers/:/var/lib/docker/containers:ro"
+          - "/var/run/docker.sock:/var/run/docker.sock:ro"
+     environment:
+          - ELASTICSEARCH_HOST=172.20.0.2
+          - KIBANA_HOST=172.20.0.4
+          - ELASTICSEARCH_USERNAME=elastic
+          - ELASTICSEARCH_PASSWORD=qwerty123
+
+
+   filebeat-to-file-6.7.2:
+     image: docker.elastic.co/beats/filebeat:6.7.2
+     container_name: filebeat-to-file
+     user: root
+     networks:
+          elkf:
+             ipv4_address: 172.20.0.5
+
+     depends_on:
+          - elasticsearch
+
+     profiles: ["fb_6.7.2"]
+
+     volumes:
+          - "./config/filebeat/filebeat-to-file.yml:/usr/share/filebeat/filebeat.yml:ro"
+          - /var/log/:/var/log/
+          - ./logs:/root/logs
+          - "/var/lib/docker/containers/:/var/lib/docker/containers:ro"
+          - "/var/run/docker.sock:/var/run/docker.sock:ro"
+     environment:
+          - ELASTICSEARCH_HOST=172.20.0.2
+          - KIBANA_HOST=172.20.0.4
+          - ELASTICSEARCH_USERNAME=elastic
+          - ELASTICSEARCH_PASSWORD=qwerty123
+
+
+   filebeat-to-logstash-6.7.2:
+     image: docker.elastic.co/beats/filebeat:6.7.2
+     container_name: filebeat-to-logstash
+     user: root
+     networks:
+          elkf:
+             ipv4_address: 172.20.0.6
+
+     profiles: ["fb_6.7.2"]
+
+     depends_on:
+          - elasticsearch
+     volumes:
+          - "./config/filebeat/filebeat-to-logstash.yml:/usr/share/filebeat/filebeat.yml:ro"
+          - /var/log/:/var/log/
+          - ./logs:/root/logs
+          - "/var/lib/docker/containers/:/var/lib/docker/containers:ro"
+          - "/var/run/docker.sock:/var/run/docker.sock:ro"
+     environment:
+          - ELASTICSEARCH_HOST=172.20.0.2
+          - KIBANA_HOST=172.20.0.4
+          - ELASTICSEARCH_USERNAME=elastic
+          - ELASTICSEARCH_PASSWORD=qwerty123
+
+networks:
+     elkf:
+       driver: bridge
+       ipam:
+         driver: default
+         config:
+          - subnet: 172.20.0.0/24

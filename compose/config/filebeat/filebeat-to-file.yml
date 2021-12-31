@@ -1,0 +1,23 @@
+
+filebeat.inputs:
+ - type: log
+   paths:
+     - /root/logs/*.log
+   fields:
+     document_type: log
+
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      templates:
+        - condition:
+            contains:
+              docker.container.image: filebeat
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+
+output.file:
+   path: "/root/logs"
+   filename: filebeat_out

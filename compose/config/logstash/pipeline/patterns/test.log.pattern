@@ -1,0 +1,6 @@
+TIME         (\d{4})-(\d{2})-(\d{2})\s(\d{2}):(\d{2}):(\d{2})
+LOGLEVEL     %(TIME)\K\s+\b\w+\b
+LOGGER       %(LOGLEVEL)\K\s\b\w+\b
+RANDOMNUMBER %(LOGGER)\K\s\b\w+\b
+RANDOMWORD   %(RANDOMNUMBER)\K\s+\b\w+\b
+MESSAGE      %(RANDOMWORD)\K.+

@@ -1,0 +1,57 @@
+---
+
+- name: Install ELKF stack to all specified machines in hosts file
+  hosts: all
+  become: yes
+  
+  vars: 
+    filebeat_version: "{{ fb_ver }}"
+  tasks:
+  - name: instll nginx
+    apt: name=nginx state=latest
+  
+  - name: install docker
+    apt: name=docker state=latest
+
+  - name: download latest version of Docker-compose
+    get_url:
+       url: https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64
+       dest: /usr/local/bin/docker-compose
+
+  - name: install Docker-compose
+    shell: ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+    args:
+       creates: /usr/bin/docker-compose
+
+  - name: run Docker
+    service: name=docker state=started enabled=yes
+  
+  - name: run ngninx
+    service: name=nginx state=started enabled=yes
+
+  - name: install pip
+    apt: name=python3-pip state=latest
+
+#  - name: stop previous version
+#    docker_compose:
+#      project_src: ./compose
+#      files:
+#           - "docker-compose.yml"
+#      state: absent
+
+  - name: copy all stuff
+    copy:
+      src: ./compose
+      dest: /root
+
+
+  - name: Docker-compose up
+    docker_compose:
+      project_src: ./compose
+      files:
+           - "docker-compose.yml"
+      profiles: 
+           - "{{ filebeat_version }}"
+      restarted: yes 
+      state: present
+      recreate: always
